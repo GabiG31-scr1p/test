@@ -19,19 +19,7 @@ function Write-Unsuccess {
   [CmdletBinding()]
   param ()
   process {
-    Write-Host -Object ' > ERROR' -ForegroundColor 'Red'
-  }
-}
-
-function Test-Admin {
-  [CmdletBinding()]
-  param ()
-  begin {
-    Write-Host -Object "Checking if the script wasn't ran as Administrator..." -NoNewline
-  }
-  process {
-    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    -not $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    Write-Host -Object ' > ERROR' -ForegroundColor 'Green'
   }
 }
 
@@ -64,8 +52,8 @@ function Get-Spicetify {
   [CmdletBinding()]
   param ()
   begin {
-    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 
-      $architecture = 'x64' 
+    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
+      $architecture = 'x64'
     }
     elseif ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
       $architecture = 'arm64'
@@ -85,16 +73,16 @@ function Get-Spicetify {
     }
     else {
       Write-Host -Object 'Fetching the latest spicetify version...' -NoNewline
-      $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/spicetify-cli/releases/latest'
+      $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest'
       $targetVersion = $latestRelease.tag_name -replace 'v', ''
       Write-Success
     }
-    $archivePath = "$env:TEMP\spicetify.zip"
+    $archivePath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "spicetify.zip")
   }
   process {
     Write-Host -Object "Downloading spicetify v$targetVersion..." -NoNewline
     $Parameters = @{
-      Uri            = "https://github.com/spicetify/spicetify-cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
+      Uri            = "https://github.com/spicetify/cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
       UseBasicParsin = $true
       OutFile        = $archivePath
     }
@@ -165,11 +153,21 @@ else {
 }
 if (-not (Test-Admin)) {
   Write-Unsuccess
-  Write-Warning -Message "The script was ran as Administrator which isn't recommended"
+  Write-Warning -Message "The script was run as administrator. This can result in problems with the installation process or unexpected behavior. Do not continue if you do not know what you are doing."
   $Host.UI.RawUI.Flushinputbuffer()
-  Write-Success
+  $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
+    (New-Object System.Management.Automation.Host.ChoiceDescription '&Yes', 'Abort installation.'),
+    (New-Object System.Management.Automation.Host.ChoiceDescription '&No', 'Resume installation.')
+  )
+  $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process?', $choices, 0)
+  if ($choice -eq 0) {
+    Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
+    Pause
+    exit
+  }
 }
 else {
+  Write-Success
 }
 #endregion Checks
 
@@ -180,14 +178,10 @@ Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'
 #endregion Spicetify
-
-#region Marketplace
-$Host.UI.RawUI.Flushinputbuffer()
   Write-Host -Object 'Starting the spicetify Marketplace installation script..'
   $Parameters = @{
     Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
     UseBasicParsing = $true
   }
   Invoke-WebRequest @Parameters | Invoke-Expression
-#endregion Marketplace
 #endregion Main
