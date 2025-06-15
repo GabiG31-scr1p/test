@@ -163,8 +163,6 @@ Install-Spicetify
 Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'
-#endregion Spicetify
-
-  Invoke-WebRequest @Parameters | Invoke-Expression
+#endregion Spicetif
 
 #endregion Main
